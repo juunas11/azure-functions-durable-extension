@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using DurableTask.AzureStorage;
+using DurableTask.EventSourced;
 using Microsoft.Azure.WebJobs.Host.TestCommon;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -23,12 +24,34 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         public const string AzureStorageProviderType = "azure_storage";
         public const string EmulatorProviderType = "emulator";
         public const string RedisProviderType = "redis";
+        public const string EventSourcedProviderType = "eventsourced";
+        public const string EmptyStorageProviderType = "empty";
 
         public const string LogCategory = "Host.Triggers.DurableTask";
-        public const string EmptyStorageProviderType = "empty";
+        public const Microsoft.Extensions.Logging.LogLevel MinimumLogLevel = Microsoft.Extensions.Logging.LogLevel.Trace;
+
+        // Testing modalities for EventSourced provider.
+        // These are currently set to defaults that make sense for the automated testing pipeline.
+        // They can be modified to test more things locally.
+        public const bool ESUseFasterStorage = true;
+        public const bool ESUseEventHubsTransport = false;
+        public const bool ESReuseTaskHubBetweenTests = false;
+        public const bool ESTakeCheckpointsDuringTests = false;
 
         // The regex pattern that parses our Linux Dedicated logs
         public static readonly string RegexPattern = "(?<Account>[^,]*),(?<ActiveActivities>[^,]*),(?<ActiveOrchestrators>[^,]*),(?<Age>[^,]*),(?<AppName>[^,]*),(?<ContinuedAsNew>[^,]*),(?<CreatedTimeFrom>[^,]*),(?<CreatedTimeTo>[^,]*),(?<DequeueCount>[^,]*),\"(?<Details>[^\"]*)\",(?<Duration>[^,]*),(?<ETag>[^,]*),(?<Episode>[^,]*),(?<EventCount>[^,]*),(?<EventName>[^,]*),(?<EventType>[^,]*),(?<Exception>[^,]*),\"(?<ExceptionMessage>[^\"]*)\",(?<ExecutionId>[^,]*),(?<ExtensionVersion>[^,]*),(?<FromWorkerName>[^,]*),(?<FunctionName>[^,]*),(?<FunctionState>[^,]*),(?<FunctionType>[^,]*),(?<Input>[^,]*),(?<InstanceId>[^,]*),(?<IsCheckpointComplete>[^,]*),(?<IsExtendedSession>[^,]*),(?<IsReplay>[^,]*),(?<LastCheckpointTime>[^,]*),(?<LatencyMs>[^,]*),(?<MessageId>[^,]*),(?<MessagesRead>[^,]*),(?<MessagesSent>[^,]*),(?<MessagesUpdated>[^,]*),(?<NewEventCount>[^,]*),(?<NewEvents>[^,]*),(?<NextVisibleTime>[^,]*),(?<OperationId>[^,]*),(?<OperationName>[^,]*),(?<Output>[^,]*),(?<PartitionId>[^,]*),(?<PendingOrchestratorMessages>[^,]*),(?<PendingOrchestrators>[^,]*),(?<Reason>[^,]*),(?<RelatedActivityId>[^,]*),(?<RequestCount>[^,]*),(?<RequestId>[^,]*),(?<RequestingExecutionId>[^,]*),(?<RequestingInstance>[^,]*),(?<RequestingInstanceId>[^,]*),(?<Result>[^,]*),(?<RuntimeStatus>[^,]*),(?<SequenceNumber>[^,]*),(?<SizeInBytes>[^,]*),(?<SlotName>[^,]*),(?<StatusCode>[^,]*),(?<StorageRequests>[^,]*),(?<Success>[^,]*),(?<TableEntitiesRead>[^,]*),(?<TableEntitiesWritten>[^,]*),(?<TargetExecutionId>[^,]*),(?<TargetInstanceId>[^,]*),(?<TaskEventId>[^,]*),(?<TaskHub>[^,]*),(?<Token>[^,]*),(?<TotalEventCount>[^,]*),(?<Version>[^,]*),(?<VisibilityTimeoutSeconds>[^,]*),(?<WorkerName>[^,]*)";
+
+        public static string[] LoggerCategoriesForTestOutput => new string[]
+        {
+            "Host.Triggers.DurableTask",
+            "DurableTaskBackend",
+            "DurableTaskBackend.Events",
+            "DurableTaskBackend.FasterStorage",
+            "DurableTaskBackend.EventHubsTransport",
+        };
+
+        // set this to false during local debugging if encountering COM resource exceptions
+        public static bool CaptureETWInTestOutput => true;
 
         public static ITestHost GetJobHost(
             ILoggerProvider loggerProvider,
@@ -64,6 +87,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 #if !FUNCTIONS_V1
                 case RedisProviderType:
                 case EmulatorProviderType:
+                case EventSourcedProviderType:
 #endif
                     break;
                 default:
@@ -113,6 +137,40 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 {
                     options.StorageProvider["maxQueuePollingInterval"] = maxQueuePollingInterval.Value;
                 }
+            }
+
+            // EventSourced provider specific tests
+            else if (string.Equals(storageProviderType, EventSourcedProviderType))
+            {
+                options.StorageProvider[EventSourcedDurabilityProviderFactory.ReuseTaskHubForTests] = ESReuseTaskHubBetweenTests.ToString();
+
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.StorageConnectionString)] = "$AzureWebJobsStorage";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.EventHubsConnectionString)] =
+                    ESUseEventHubsTransport ? "$EventHubsConnection" : (ESUseFasterStorage ? "MemoryF:4" : "Memory:8");
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.EventProcessorManagement)] = "EventHubs";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.PremiumStorageConnectionString)] = "";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.UsePSFQueries)] = "false";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.UseAlternateObjectStore)] = "false";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.UseJsonPackets)] = "Never";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.PersistStepsFirst)] = "false";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.TakeStateCheckpointWhenStoppingPartition)] = "false";
+
+                // The checkpoint distance can be adjusted depending on whether we want to stress the checkpointing logic during the unit test
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.MaxNumberBytesBetweenCheckpoints)] = ESTakeCheckpointsDuringTests ? "10000000" : "20000000000";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.MaxNumberEventsBetweenCheckpoints)] = ESTakeCheckpointsDuringTests ? "2000" : "1000000000";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.MaxTimeMsBetweenCheckpoints)] = ESTakeCheckpointsDuringTests ? "20000" : "6000000000";
+
+                // for the unit testing we always keep the tracing at the most detailed level.
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.LogLevelLimit)] = "Trace";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.StorageLogLevelLimit)] = "Trace";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.TransportLogLevelLimit)] = "Trace";
+                options.StorageProvider[nameof(EventSourcedOrchestrationServiceSettings.EventLogLevelLimit)] = "Trace";
+
+                // The following settings are meant to be helpful for producing more logs.
+                // They are typically not needed for the unit testing scenarios.
+                options.StorageProvider["TraceToConsole"] = "false";
+                options.StorageProvider["TraceToEtwExtension"] = "false";
+                options.StorageProvider["TraceToBlob"] = "false";
             }
 
             if (eventGridRetryCount.HasValue)

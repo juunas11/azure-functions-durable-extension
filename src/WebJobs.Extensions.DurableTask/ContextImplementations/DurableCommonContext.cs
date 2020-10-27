@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using DurableTask.Core.History;
@@ -22,7 +23,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         {
             this.Config = config ?? throw new ArgumentNullException(nameof(config));
             this.FunctionName = functionName;
-            this.EntityMessageReorderWindow = TimeSpan.FromMinutes(config.Options.EntityMessageReorderWindowInMinutes);
         }
 
         internal DurableTaskExtension Config { get; }
@@ -41,8 +41,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
         internal string Name => this.FunctionName;
 
-        internal TimeSpan EntityMessageReorderWindow { get; private set; }
-
         internal bool ExecutorCalledBack { get; set; }
 
         internal void AddDeferredTask(Func<Task> function)
@@ -54,6 +52,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
         {
             await Task.WhenAll(this.deferredTasks.Select(x => x()));
             this.deferredTasks.Clear();
+        }
+
+        [Conditional("false")]
+        internal void TraceWorkItemProgress(string format, object arg)
+        {
+            // TODO hook this up with tracing in the backend when it is implemented
         }
     }
 }

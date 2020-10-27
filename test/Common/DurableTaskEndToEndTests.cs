@@ -71,8 +71,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 this.eventSourceListener.OnTraceLog += this.OnEventSourceListenerTraceLog;
 
-                string sessionName = "DTFxTrace" + Guid.NewGuid().ToString("N");
-                this.eventSourceListener.CaptureLogs(sessionName, traceConfig);
+                if (TestHelpers.CaptureETWInTestOutput)
+                {
+                    string sessionName = "DTFxTrace" + Guid.NewGuid().ToString("N");
+                    this.eventSourceListener.CaptureLogs(sessionName, traceConfig);
+                }
             }
         }
 
@@ -693,7 +696,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [MemberData(nameof(TestDataGenerator.GetAllSupportedExtendedSessionWithStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
         public async Task HelloWorldOrchestration_Activity(bool extendedSessions, string storageProvider)
         {
             await this.HelloWorldOrchestration_Activity_Main_Logic(nameof(this.HelloWorldOrchestration_Activity), extendedSessions, storageProvider);
@@ -894,7 +897,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -945,7 +948,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -1026,7 +1029,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             }
 
             // Assert log entry count
-            if (this.useTestLogger)
+            if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
             {
                 var logger = this.loggerProvider.CreatedLoggers.Single(l => l.Category == TestHelpers.LogCategory);
                 var logMessages = logger.LogMessages.Where(
@@ -1123,7 +1126,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -1355,7 +1358,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -1374,7 +1377,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
         [Trait("Category", PlatformSpecificHelpers.TestCategory + "_BVT")]
-        [MemberData(nameof(TestDataGenerator.GetFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        [MemberData(nameof(TestDataGenerator.GetStorageProviderWithRewindOptions), MemberType = typeof(TestDataGenerator))]
         public async Task RewindOrchestration(string storageProvider)
         {
             string[] orchestratorFunctionNames =
@@ -1411,7 +1414,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -1457,7 +1460,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -1503,7 +1506,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -1744,7 +1747,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -1791,7 +1794,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -1821,7 +1824,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [MemberData(nameof(TestDataGenerator.GetFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        [MemberData(nameof(TestDataGenerator.GetHistoryStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
         public async Task SubOrchestration_ComplexType_History(string storageProvider)
         {
             await this.SubOrchestration_ComplexType_Main_Logic(nameof(this.SubOrchestration_ComplexType_History), storageProvider, showHistory: true);
@@ -1832,7 +1835,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [MemberData(nameof(TestDataGenerator.GetFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        [MemberData(nameof(TestDataGenerator.GetHistoryStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
         public async Task SubOrchestration_ComplexType_HistoryInputOutput(string storageProvider)
         {
             await this.SubOrchestration_ComplexType_Main_Logic(nameof(this.SubOrchestration_ComplexType_HistoryInputOutput), storageProvider, showHistory: true, showHistoryOutput: true);
@@ -2043,7 +2046,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.UnhandledOrchesterationExceptionWithRetry_AssertLogMessageSequence(
                         this.output,
@@ -2132,7 +2135,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -2230,7 +2233,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -2380,7 +2383,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -2443,7 +2446,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -2549,7 +2552,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -2824,7 +2827,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 Assert.Equal(OrchestrationRuntimeStatus.Completed, status?.RuntimeStatus);
                 HttpManagementPayload httpManagementPayload = status.Output.ToObject<HttpManagementPayload>();
-                ValidateHttpManagementPayload(httpManagementPayload, extendedSessions, "ActivityGetsHttpManagementPayload");
+                ValidateHttpManagementPayload(httpManagementPayload, extendedSessions, storageProvider, "ActivityGetsHttpManagementPayload");
 
                 await host.StopAsync();
             }
@@ -2856,7 +2859,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 var status = await client.WaitForCompletionAsync(this.output);
 
                 HttpManagementPayload httpManagementPayload = client.InnerClient.CreateHttpManagementPayload(status.InstanceId);
-                ValidateHttpManagementPayload(httpManagementPayload, extendedSessions, "OrchestrationClientGetsHttpManagementPayload");
+                ValidateHttpManagementPayload(httpManagementPayload, extendedSessions, storageProvider, "OrchestrationClientGetsHttpManagementPayload");
 
                 Assert.Equal(OrchestrationRuntimeStatus.Completed, status?.RuntimeStatus);
                 Assert.Equal("World", status?.Input);
@@ -2864,7 +2867,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
                 await host.StopAsync();
 
-                if (this.useTestLogger)
+                if (this.useTestLogger && storageProvider == TestHelpers.AzureStorageProviderType)
                 {
                     TestHelpers.AssertLogMessageSequence(
                         this.output,
@@ -2961,9 +2964,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_SignalAndCallStringStore(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_SignalAndCallStringStore(bool extendedSessions, string storageProvider)
         {
             string[] orchestratorFunctionNames =
             {
@@ -2973,7 +2975,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_SignalAndCallStringStore),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -2999,9 +3002,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_StringStoreWithCreateDelete(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_StringStoreWithCreateDelete(bool extendedSessions, string storageProvider)
         {
             string[] orchestratorFunctionNames =
             {
@@ -3011,7 +3013,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_StringStoreWithCreateDelete),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3110,9 +3113,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_SignalThenPoll(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_SignalThenPoll(bool extendedSessions, string storageProvider)
         {
             string[] orchestratorFunctionNames =
             {
@@ -3122,7 +3124,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_SignalThenPoll),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3181,9 +3184,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_LargeEntity(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_LargeEntity(bool extendedSessions, string storageProvider)
         {
             string[] orchestratorFunctionNames =
             {
@@ -3193,7 +3195,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_LargeEntity),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3221,15 +3224,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// At the end, it validates that all of the appends are reflected in the final state.
         /// </summary>
         [Theory]
-        [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_EntityToAndFromBlob(bool extendedSessions)
+        [Trait("Category", PlatformSpecificHelpers.TestCategory + "_UnpublishedDependencies")]
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_EntityToAndFromBlob(bool extendedSessions, string storageProvider)
         {
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_EntityToAndFromBlob),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3468,9 +3471,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_LockedIncrements(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_LockedIncrements(bool extendedSessions, string storageProvider)
         {
             string[] orchestratorFunctionNames =
             {
@@ -3479,7 +3481,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_LockedIncrements),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3521,14 +3524,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_SingleLockedTransfer(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_SingleLockedTransfer(bool extendedSessions, string storageProvider)
         {
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_SingleLockedTransfer),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3563,10 +3566,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true, 5)]
-        [InlineData(false, 5)]
-        public async Task DurableEntity_MultipleLockedTransfers(bool extendedSessions, int numberEntities)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_MultipleLockedTransfers(bool extendedSessions, string storageProvider)
         {
+            var numberEntities = 5;
+
             string[] orchestratorFunctionNames =
             {
                 nameof(TestOrchestrations.LockedTransfer),
@@ -3574,7 +3578,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_MultipleLockedTransfers),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3638,14 +3643,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// <summary>
         /// Test which validates that actors can safely make async I/O calls.
         /// </summary>
-        [Fact]
+        [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        public async Task DurableEntity_AsyncIO()
+        [MemberData(nameof(TestDataGenerator.GetFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_AsyncIO(string storageProvider)
         {
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_AsyncIO),
-                enableExtendedSessions: false))
+                enableExtendedSessions: false,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3682,9 +3689,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_EntityNameCaseInsensitivity(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_EntityNameCaseInsensitivity(bool extendedSessions, string storageProvider)
         {
             string[] orchestratorFunctionNames =
             {
@@ -3694,7 +3700,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_EntityNameCaseInsensitivity),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3803,9 +3810,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_BasicObjects(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_BasicObjects(bool extendedSessions, string storageProvider)
         {
             string[] orchestratorFunctionNames =
             {
@@ -3814,7 +3820,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_BasicObjects),
-                extendedSessions))
+                extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3836,9 +3843,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_EntityProxy(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_EntityProxy(bool extendedSessions, string storageProvider)
         {
             string[] orchestratorFunctionNames =
             {
@@ -3847,7 +3853,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_EntityProxy),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -3943,9 +3950,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         /// </summary>
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DurableEntity_EntityProxy_NameResolve(bool extendedSessions)
+        [MemberData(nameof(TestDataGenerator.GetBooleanAndFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        public async Task DurableEntity_EntityProxy_NameResolve(bool extendedSessions, string storageProvider)
         {
             string[] orchestratorFunctionNames =
             {
@@ -3954,7 +3960,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             using (var host = TestHelpers.GetJobHost(
                 this.loggerProvider,
                 nameof(this.DurableEntity_EntityProxy_NameResolve),
-                extendedSessions))
+                enableExtendedSessions: extendedSessions,
+                storageProviderType: storageProvider))
             {
                 await host.StartAsync();
 
@@ -4089,16 +4096,22 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 Assert.Equal(instanceId, orchestrationStatus.InstanceId);
                 Assert.True(orchestrationStatus.History.Count > 0);
 
-                int blobCount = await GetBlobCount($"{client.TaskHubName.ToLowerInvariant()}-largemessages", instanceId);
-                Assert.True(blobCount > 0);
+                if (storageProvider == TestHelpers.AzureStorageProviderType)
+                {
+                    int blobCount = await GetBlobCount($"{client.TaskHubName.ToLowerInvariant()}-largemessages", instanceId);
+                    Assert.True(blobCount > 0);
+                }
 
                 await client.InnerClient.PurgeInstanceHistoryAsync(instanceId);
 
                 orchestrationStatus = await client.GetStatusAsync(true);
                 Assert.Null(orchestrationStatus);
 
-                blobCount = await GetBlobCount($"{client.TaskHubName.ToLowerInvariant()}-largemessages", instanceId);
-                Assert.Equal(0, blobCount);
+                if (storageProvider == TestHelpers.AzureStorageProviderType)
+                {
+                    int blobCount = await GetBlobCount($"{client.TaskHubName.ToLowerInvariant()}-largemessages", instanceId);
+                    Assert.Equal(0, blobCount);
+                }
 
                 await host.StopAsync();
             }
@@ -4156,10 +4169,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 status = await client.InnerClient.GetStatusAsync(fourthInstanceId, true);
                 Assert.Equal(OrchestrationRuntimeStatus.Completed, status?.RuntimeStatus);
                 Assert.True(status.History.Count > 0);
-                await ValidateBlobUrlAsync(client.TaskHubName, client.InstanceId, (string)status.Output);
 
-                int blobCount = await GetBlobCount($"{client.TaskHubName.ToLowerInvariant()}-largemessages", fourthInstanceId);
-                Assert.True(blobCount > 0);
+                if (storageProvider == TestHelpers.AzureStorageProviderType)
+                {
+                    await ValidateBlobUrlAsync(client.TaskHubName, client.InstanceId, (string)status.Output);
+                    int blobCount = await GetBlobCount($"{client.TaskHubName.ToLowerInvariant()}-largemessages", fourthInstanceId);
+                    Assert.True(blobCount > 0);
+                }
 
                 await client.InnerClient.PurgeInstanceHistoryAsync(
                     startDateTime,
@@ -4183,8 +4199,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 status = await client.InnerClient.GetStatusAsync(fourthInstanceId, true);
                 Assert.Null(status);
 
-                blobCount = await GetBlobCount($"{client.TaskHubName.ToLowerInvariant()}-largemessages", fourthInstanceId);
-                Assert.Equal(0, blobCount);
+                if (storageProvider == TestHelpers.AzureStorageProviderType)
+                {
+                    var blobCount = await GetBlobCount($"{client.TaskHubName.ToLowerInvariant()}-largemessages", fourthInstanceId);
+                    Assert.Equal(0, blobCount);
+                }
 
                 await host.StopAsync();
             }
@@ -4361,7 +4380,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
 
         [Theory]
         [Trait("Category", PlatformSpecificHelpers.TestCategory)]
-        [MemberData(nameof(TestDataGenerator.GetFullFeaturedStorageProviderOptions), MemberType = typeof(TestDataGenerator))]
+        [MemberData(nameof(TestDataGenerator.GetStorageProviderWithPagedQueries), MemberType = typeof(TestDataGenerator))]
         public async Task DurableEntity_ListEntitiesAsync_Paging(string storageProvider)
         {
             var yesterday = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1));
@@ -5297,25 +5316,36 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
             Assert.True(await blob.ExistsAsync(), $"Blob named {blob.Uri} is expected to exist.");
         }
 
-        private static void ValidateHttpManagementPayload(HttpManagementPayload httpManagementPayload, bool extendedSessions, string defaultTaskHubName)
+        private static void ValidateHttpManagementPayload(HttpManagementPayload httpManagementPayload, bool extendedSessions, string storageProvider, string defaultTaskHubName)
         {
             Assert.NotNull(httpManagementPayload);
             Assert.NotEmpty(httpManagementPayload.Id);
             string instanceId = httpManagementPayload.Id;
             string notificationUrl = TestConstants.NotificationUrlBase;
+            string storageName;
+
             string taskHubName = extendedSessions
-                ? $"{defaultTaskHubName}EX"
-                : defaultTaskHubName;
+                  ? $"{defaultTaskHubName}EX"
+                  : defaultTaskHubName;
             taskHubName += PlatformSpecificHelpers.VersionSuffix;
 
+            if (storageProvider == TestHelpers.EventSourcedProviderType)
+            {
+                storageName = "StorageConnectionString";
+            }
+            else
+            {
+                storageName = "AzureWebJobsStorage";
+            }
+
             Assert.Equal(
-                $"{notificationUrl}/instances/{instanceId}?taskHub={taskHubName}&connection=AzureWebJobsStorage&code=mykey",
+                $"{notificationUrl}/instances/{instanceId}?taskHub={taskHubName}&connection={storageName}&code=mykey",
                 httpManagementPayload.StatusQueryGetUri);
             Assert.Equal(
-                $"{notificationUrl}/instances/{instanceId}/raiseEvent/{{eventName}}?taskHub={taskHubName}&connection=AzureWebJobsStorage&code=mykey",
+                $"{notificationUrl}/instances/{instanceId}/raiseEvent/{{eventName}}?taskHub={taskHubName}&connection={storageName}&code=mykey",
                 httpManagementPayload.SendEventPostUri);
             Assert.Equal(
-                $"{notificationUrl}/instances/{instanceId}/terminate?reason={{text}}&taskHub={taskHubName}&connection=AzureWebJobsStorage&code=mykey",
+                $"{notificationUrl}/instances/{instanceId}/terminate?reason={{text}}&taskHub={taskHubName}&connection={storageName}&code=mykey",
                 httpManagementPayload.TerminatePostUri);
         }
 

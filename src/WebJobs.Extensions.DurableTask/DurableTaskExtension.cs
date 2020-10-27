@@ -189,6 +189,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
         internal MessagePayloadDataConverter ErrorDataConverter { get; private set; }
 
+        internal TimeSpan MessageReorderWindow
+            => this.defaultDurabilityProvider.GuaranteesOrderedDelivery ? TimeSpan.Zero : TimeSpan.FromMinutes(this.Options.EntityMessageReorderWindowInMinutes);
+
         private MessagePayloadDataConverter CreateMessageDataConverter(IMessageSerializerSettingsFactory messageSerializerSettingsFactory)
         {
             bool isDefault;
@@ -213,6 +216,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
             isDefault = errorSerializerSettingsFactory is ErrorSerializerSettingsFactory;
 
             return new MessagePayloadDataConverter(errorSerializerSettingsFactory.CreateJsonSerializerSettings(), isDefault);
+        }
+
+        internal string GetBackendInfo()
+        {
+            return this.defaultDurabilityProvider.GetBackendInfo();
         }
 
         /// <summary>
@@ -725,7 +733,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                                 else
                                 {
                                     // run this through the message sorter to help with reordering and duplicate filtering
-                                    deliverNow = entityContext.State.MessageSorter.ReceiveInOrder(requestMessage, entityContext.EntityMessageReorderWindow);
+                                    deliverNow = entityContext.State.MessageSorter.ReceiveInOrder(requestMessage, this.MessageReorderWindow);
                                 }
 
                                 foreach (var message in deliverNow)
@@ -733,6 +741,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                                     if (entityContext.State.LockedBy == message.ParentInstanceId)
                                     {
                                         // operation requests from the lock holder are processed immediately
+                                        entityContext.TraceWorkItemProgress("processes {entityMessage}", message);
                                         entityShim.AddOperationToBatch(message);
                                     }
                                     else
@@ -749,6 +758,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
 
                                 if (entityContext.State.LockedBy == message.ParentInstanceId)
                                 {
+                                    entityContext.TraceWorkItemProgress("processes {entityMessage}", message);
+
                                     this.TraceHelper.EntityLockReleased(
                                         entityContext.HubName,
                                         entityContext.Name,
@@ -758,6 +769,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                                         isReplay: false);
 
                                     entityContext.State.LockedBy = null;
+                                }
+                                else
+                                {
+                                    entityContext.TraceWorkItemProgress("!!!! drops {entityMessage}", message);
                                 }
                             }
 
@@ -769,6 +784,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask
                 while (entityContext.State.LockedBy == null
                     && entityContext.State.TryDequeue(out var request))
                 {
+                    entityContext.TraceWorkItemProgress("processes {entityMessage}", request);
+
                     if (request.IsLockRequest)
                     {
                         entityShim.AddLockRequestToBatch(request);

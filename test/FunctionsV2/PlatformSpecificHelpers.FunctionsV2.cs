@@ -36,6 +36,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                     loggingBuilder =>
                     {
                         loggingBuilder.AddProvider(loggerProvider);
+                        loggingBuilder.SetMinimumLevel(TestHelpers.MinimumLogLevel);
                     })
                 .ConfigureWebJobs(
                     webJobsBuilder =>
@@ -83,6 +84,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
                 case TestHelpers.EmulatorProviderType:
                     builder.AddEmulatorDurableTask();
                     break;
+                case TestHelpers.EventSourcedProviderType:
+                    builder.AddEventSourcedDurableTask();
+                    break;
                 case TestHelpers.AzureStorageProviderType:
                     // This provider is built into the default AddDurableTask() call below.
                     break;
@@ -103,6 +107,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.DurableTask.Tests
         private static IWebJobsBuilder AddEmulatorDurableTask(this IWebJobsBuilder builder)
         {
             builder.Services.AddSingleton<IDurabilityProviderFactory, EmulatorDurabilityProviderFactory>();
+            return builder;
+        }
+
+        private static IWebJobsBuilder AddEventSourcedDurableTask(this IWebJobsBuilder builder)
+        {
+            builder.Services.AddSingleton<IDurabilityProviderFactory, EventSourcedDurabilityProviderFactory>();
             return builder;
         }
 
